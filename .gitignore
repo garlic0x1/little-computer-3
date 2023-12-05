@@ -3,4 +3,7 @@
 *.log
 tmp/
 
+obj/*
+bin/*
+
 *.obj
