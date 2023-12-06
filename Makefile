@@ -17,10 +17,10 @@ OBJ=obj
 SRCS=$(wildcard $(SRC)/**/*.c) $(wildcard $(SRC)/*.c)
 OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
-all: $(BIN)
+all: prepare $(BIN)
 
 prepare:
-	mkdir $(OBJ)/machine $(OBJ)/operations $(OBJ)/syscall $(OBJ)/util
+	-mkdir $(OBJ)/machine $(OBJ)/operations $(OBJ)/syscall $(OBJ)/util
 
 $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(BIN)
@@ -32,10 +32,9 @@ install: $(BIN)
 	cp $(BIN) $(INSTALLDIR)/$(PROGNAME)
 
 clean:
-	rm -r $(OBJ)/*
-	rm -r $(BINDIR)/*
-	rm $(INSTALLDIR)/$(PROGNAME)
-	mkdir $(OBJ)/machine $(OBJ)/operations $(OBJ)/syscall $(OBJ)/util
+	-rm -r $(OBJ)/*
+	-rm -r $(BINDIR)/*
+	-rm $(INSTALLDIR)/$(PROGNAME)
 
 run: $(BIN)
 	$(BIN)
