@@ -28,7 +28,7 @@ int main(int argc, const char *argv[])
 	}
 
 	signal(SIGINT, handle_interrupt);
-disable_input_buffering();
+	disable_input_buffering();
 
 	/* since exactly one condition flag should be set at any given time, set the Z flag */
 	state.reg[R_COND] = FL_ZRO;
@@ -38,6 +38,7 @@ disable_input_buffering();
 	enum { PC_START = 0x3000 };
 	state.reg[R_PC] = PC_START;
 	state.running = true;
+
 
 	while (state.running) {
 		/* FETCH */

@@ -21,7 +21,6 @@ void read_image_file(struct vm_state *state, FILE *file)
 {
 	uint16_t origin;
 	fread(&origin, sizeof(origin), 1, file);
-	// TODO
 	origin = swap16(origin);
 
 	uint16_t max_read = MEMORY_MAX - origin;

@@ -1,5 +1,6 @@
 #include "op.h"
 #include "trap.h"
+#include "util.h"
 #include "vm.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -130,7 +131,7 @@ void op_ld(struct vm_state *state, uint16_t instr)
 {
 	uint16_t r0 = (instr >> 9) & 0x7;
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	state->reg[r0] = mem_read(state->reg[R_PC] + pc_offset);
+	state->reg[r0] = mem_read(state, state->reg[R_PC] + pc_offset);
 	update_flags(state, r0);
 }
 
@@ -149,7 +150,7 @@ void op_ldi(struct vm_state *state, uint16_t instr)
 	/* PCoffset 9*/
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
 	/* add offset to pc, and read memory */
-	state->reg[r0] = mem_read(mem_read(state->reg[R_PC] + pc_offset));
+	state->reg[r0] = mem_read(state, mem_read(state, state->reg[R_PC] + pc_offset));
 	update_flags(state, r0);
 }
 
@@ -165,7 +166,7 @@ void op_ldr(struct vm_state *state, uint16_t instr)
 	uint16_t r0 = (instr >> 9) & 0x7;
 	uint16_t r1 = (instr >> 6) & 0x7;
 	uint16_t offset = sign_extend(instr & 0x3F, 6);
-	state->reg[r0] = mem_read(state->reg[r1] + offset);
+	state->reg[r0] = mem_read(state, state->reg[r1] + offset);
 	update_flags(state, r0);
 }
 
@@ -229,7 +230,7 @@ void op_st(struct vm_state *state, uint16_t instr)
 {
 	uint16_t r0 = (instr >> 9) & 0x7;
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	mem_write(state->reg[R_PC] + pc_offset, state->reg[r0]);
+	mem_write(state, state->reg[R_PC] + pc_offset, state->reg[r0]);
 }
 
 /*
@@ -243,7 +244,7 @@ void op_sti(struct vm_state *state, uint16_t instr)
 {
 	uint16_t r0 = (instr >> 9) & 0x7;
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	mem_write(mem_read(state->reg[R_PC] + pc_offset), state->reg[r0]);
+	mem_write(state, mem_read(state, state->reg[R_PC] + pc_offset), state->reg[r0]);
 }
 
 /*
@@ -257,7 +258,7 @@ void op_str(struct vm_state *state, uint16_t instr)
     uint16_t r0 = (instr >> 9) & 0x7;
     uint16_t r1 = (instr >> 6) & 0x7;
     uint16_t offset = sign_extend(instr & 0x3F, 6);
-    mem_write(state->reg[r1] + offset, state->reg[r0]);
+    mem_write(state, state->reg[r1] + offset, state->reg[r0]);
 }
 
 /*
@@ -279,5 +280,5 @@ void op_res(struct vm_state *state, uint16_t instr)
 */
 void op_trap(struct vm_state *state, uint16_t instr) {
 	state->reg[R_R7] = state->reg[R_PC];
-    trap(instr & 0xff, state->reg);
+    trap(state, instr & 0xff);
 }
