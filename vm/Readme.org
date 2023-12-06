@@ -1,0 +1,27 @@
+#+title: Readme
+
+* LC-3
+** main.c
+Entrypoint function, here the state of the VM is declared.  Command line arguments are LC-3 bytecode files to run.
+
+The main loop of the program is in main.
+** machine
+A header file to give name and structure to our VM.
+
+- 11 registers are given names
+- 3 states for the condition register
+- Structure to contain the state of the VM
+  - memory, a stack
+  - reg, the virtual registers (also on the stack)
+- 2 special registers
+
+** operations
+op.h defines opcodes, and exposes apply_op to perform an operation.
+
+op.c has implementations of the operations as defined by the spec.
+** syscall
+trap.h defines trapcodes, and exposes the 'trap' function to execute them.
+
+trap.c has implementations of the trap procedures.
+** util
+Most of this I copied from [[https://www.jmeiners.com/lc3-vm/][here]], (Go read that if you want to build your own VM), however I made everything take a pointer to the vm_state structure.
