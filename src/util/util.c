@@ -1,5 +1,15 @@
 #include "util.h"
 #include "io.h"
+#include <signal.h>
+#include <stdlib.h>
+
+uint16_t sign_extend(uint16_t x, int bit_count)
+{
+	if ((x >> (bit_count - 1)) & 1) {
+		x |= (0xFFFF << bit_count);
+	}
+	return x;
+}
 
 uint16_t swap16(uint16_t x)
 {
@@ -36,7 +46,8 @@ void read_image_file(struct vm_state *state, FILE *file)
 int read_image(struct vm_state *state, const char *image_path)
 {
 	FILE *file = fopen(image_path, "rb");
-	if (!file) return 0;
+	if (!file)
+		return 0;
 	read_image_file(state, file);
 	fclose(file);
 	return 1;
@@ -58,4 +69,20 @@ uint16_t mem_read(struct vm_state *state, uint16_t address)
 		}
 	}
 	return state->memory[address];
+}
+
+void load_bytecode(struct vm_state *state, char *filename)
+{
+	if (!read_image(state, filename)) {
+		printf("failed to load image: %s\n", filename);
+		exit(-1);
+	}
+}
+
+void vm_init(struct vm_state *state)
+{
+	signal(SIGINT, handle_interrupt);
+	disable_input_buffering();
+	state->reg[R_PC] = PC_START;
+	state->running = true;
 }

@@ -1,5 +1,5 @@
 #include "trap.h"
-#include "vm.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -35,7 +35,7 @@ void trap_in(struct vm_state *state, uint16_t trap_code)
 	putc(c, stdout);
 	fflush(stdout);
 	state->reg[R_R0] = (uint16_t)c;
-	update_flags(R_R0);
+	update_flags(state, R_R0);
 }
 
 void trap_putsp(struct vm_state *state, uint16_t trap_code)
@@ -66,22 +66,22 @@ void trap(struct vm_state *state, uint16_t trap_code)
 {
 	switch (trap_code) {
 	case TRAP_GETC:
-        trap_getc(state, trap_code);
+		trap_getc(state, trap_code);
 		break;
 	case TRAP_OUT:
-        trap_out(state, trap_code);
+		trap_out(state, trap_code);
 		break;
 	case TRAP_PUTS:
-        trap_puts(state, trap_code);
+		trap_puts(state, trap_code);
 		break;
 	case TRAP_IN:
-        trap_in(state, trap_code);
+		trap_in(state, trap_code);
 		break;
 	case TRAP_PUTSP:
-        trap_putsp(state, trap_code);
+		trap_putsp(state, trap_code);
 		break;
 	case TRAP_HALT:
-        trap_halt(state, trap_code);
+		trap_halt(state, trap_code);
 		break;
 	}
 }

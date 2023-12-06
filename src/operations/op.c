@@ -1,7 +1,4 @@
 #include "op.h"
-#include "trap.h"
-#include "util.h"
-#include "vm.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -10,14 +7,6 @@
 ** the spec for operations can be found here:
 ** https://www.jmeiners.com/lc3-vm/supplies/lc3-isa.pdf
 */
-
-uint16_t sign_extend(uint16_t x, int bit_count)
-{
-	if ((x >> (bit_count - 1)) & 1) {
-		x |= (0xFFFF << bit_count);
-	}
-	return x;
-}
 
 /*
 ** Add:
@@ -150,7 +139,8 @@ void op_ldi(struct vm_state *state, uint16_t instr)
 	/* PCoffset 9*/
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
 	/* add offset to pc, and read memory */
-	state->reg[r0] = mem_read(state, mem_read(state, state->reg[R_PC] + pc_offset));
+	state->reg[r0] =
+		mem_read(state, mem_read(state, state->reg[R_PC] + pc_offset));
 	update_flags(state, r0);
 }
 
@@ -244,7 +234,8 @@ void op_sti(struct vm_state *state, uint16_t instr)
 {
 	uint16_t r0 = (instr >> 9) & 0x7;
 	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	mem_write(state, mem_read(state, state->reg[R_PC] + pc_offset), state->reg[r0]);
+	mem_write(state, mem_read(state, state->reg[R_PC] + pc_offset),
+		  state->reg[r0]);
 }
 
 /*
@@ -255,10 +246,10 @@ void op_sti(struct vm_state *state, uint16_t instr)
 */
 void op_str(struct vm_state *state, uint16_t instr)
 {
-    uint16_t r0 = (instr >> 9) & 0x7;
-    uint16_t r1 = (instr >> 6) & 0x7;
-    uint16_t offset = sign_extend(instr & 0x3F, 6);
-    mem_write(state, state->reg[r1] + offset, state->reg[r0]);
+	uint16_t r0 = (instr >> 9) & 0x7;
+	uint16_t r1 = (instr >> 6) & 0x7;
+	uint16_t offset = sign_extend(instr & 0x3F, 6);
+	mem_write(state, state->reg[r1] + offset, state->reg[r0]);
 }
 
 /*
@@ -278,7 +269,62 @@ void op_res(struct vm_state *state, uint16_t instr)
 ** The starting address is contained in the memory location whose address is
 ** obtained by zero-extending trapvector8 to 16 bits.
 */
-void op_trap(struct vm_state *state, uint16_t instr) {
+void op_trap(struct vm_state *state, uint16_t instr)
+{
 	state->reg[R_R7] = state->reg[R_PC];
-    trap(state, instr & 0xff);
+	trap(state, instr & 0xff);
+}
+
+// lookup operation to apply to instruction
+void apply_op(struct vm_state *state, uint16_t op, uint16_t instr)
+{
+	switch (op) {
+	case OP_ADD:
+		op_add(state, instr);
+		break;
+	case OP_AND:
+		op_and(state, instr);
+		break;
+	case OP_NOT:
+		op_not(state, instr);
+		break;
+	case OP_BR:
+		op_br(state, instr);
+		break;
+	case OP_JMP:
+		op_jmp(state, instr);
+		break;
+	case OP_JSR:
+		op_jsr(state, instr);
+		break;
+	case OP_LD:
+		op_ld(state, instr);
+		break;
+	case OP_LDI:
+		op_ldi(state, instr);
+		break;
+	case OP_LDR:
+		op_ldr(state, instr);
+		break;
+	case OP_LEA:
+		op_lea(state, instr);
+		break;
+	case OP_ST:
+		op_st(state, instr);
+		break;
+	case OP_STI:
+		op_sti(state, instr);
+		break;
+	case OP_STR:
+		op_str(state, instr);
+		break;
+	case OP_TRAP:
+		op_trap(state, instr);
+		break;
+	case OP_RES:
+	case OP_RTI:
+	default:
+		abort();
+		break;
+	}
 }

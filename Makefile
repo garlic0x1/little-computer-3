@@ -14,7 +14,7 @@ BIN=$(BINDIR)/$(PROGNAME)
 
 SRC=src
 OBJ=obj
-SRCS=$(wildcard $(SRC)/*.c)
+SRCS=$(wildcard $(SRC)/**/*.c) $(wildcard $(SRC)/*.c)
 OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 all: $(BIN)

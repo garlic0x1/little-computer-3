@@ -2,8 +2,10 @@
 #define TRAP_H_
 
 #include <stdint.h>
-#include "vm.h"
+#include "../machine/vm.h"
+#include "../util/util.h"
 
+// trapcodes
 enum {
 	TRAP_GETC = 0x20, /* get character from keyboard, not echoed */
 	TRAP_OUT = 0x21, /* output a character */
