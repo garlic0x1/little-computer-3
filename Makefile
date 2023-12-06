@@ -19,6 +19,9 @@ OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SRCS))
 
 all: $(BIN)
 
+prepare:
+	mkdir $(OBJ)/machine $(OBJ)/operations $(OBJ)/syscall $(OBJ)/util
+
 $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(BIN)
 
@@ -31,6 +34,8 @@ install: $(BIN)
 clean:
 	rm -r $(OBJ)/*
 	rm -r $(BINDIR)/*
+	rm $(INSTALLDIR)/$(PROGNAME)
+	mkdir $(OBJ)/machine $(OBJ)/operations $(OBJ)/syscall $(OBJ)/util
 
 run: $(BIN)
 	$(BIN)
