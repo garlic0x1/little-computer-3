@@ -1,0 +1,78 @@
+#+title: Dev
+
+* Bit math scratch
+#+begin_src C
+#include <stdio.h>
+#include <stdint.h>
+
+void print_bits_rev(uint16_t x) {
+    uint16_t bits[16];
+    for (int i = 0; i < 16; i++) bits[i] = 0;
+
+    int j = 16;
+    for (int i = 0; x > 0; i++) {
+        bits[--j] = x % 2;
+        x /= 2;
+    }
+
+    for (int i = 0; i < 16; i++)
+        printf("%d.", bits[i]);
+    printf("\n");
+}
+
+void print_bits(uint16_t x) {
+    uint16_t bits[16];
+    for (int i = 0; i < 16; i++) bits[i] = 0;
+
+    for (int i = 0; 16 > i; i++) {
+        bits[i] = x % 2;
+        x /= 2;
+    }
+
+    for (int i = 0; i < 16; i++)
+        printf("%d.", bits[i]);
+    printf("\n");
+}
+uint16_t extract_bits_(uint8_t a, uint8_t b, uint16_t n) {
+    if (a > 15 || b > 15 || a > b)
+        return 0;
+    else
+        return (n & (((1 << (b - a + 1)) - 1) << a)) >> a;
+}
+uint16_t extract_bits(uint8_t a, uint8_t b, uint16_t n) {
+    if (a > 15 || b > 15 || a > b)
+        return 0;
+    else
+        return (n >> a) & ((1 << (b - a + 1)) - 1);
+}
+
+void write_bits(uint8_t a, uint8_t b, uint16_t *n, uint16_t value) {
+    if (a > 15 || b > 15 || a > b)
+        return 0;
+
+    uint16_t mask = ((1 << (b - a + 1)) - 1) << a;
+    ,*n &= ~mask;
+    ,*n |= (value << a) & mask;
+}
+
+uint16_t instr = 0x1261;
+uint16_t instr2 = 0xa009;
+print_bits(instr);
+printf("bit: %d\n", extract_bits(0, 0, instr));
+printf("bit: %d\n", extract_bits(0, 5, instr));
+print_bits(extract_bits(0, 8, instr));
+printf("bits: %x\n", extract_bits(12, 15, instr));
+printf("bits: %x\n", extract_bits(12, 15, instr2));
+write_bits(12, 15, &instr, 0xf);
+printf("bits: %x\n", extract_bits(12, 15, instr));
+
+#+end_src
+
+#+RESULTS:
+| 1.0.0.0.0.1.1.0.0.1.0.0.1.0.0.0. |    |
+| bit:                             |  1 |
+| bit:                             | 33 |
+| 1.0.0.0.0.1.1.0.0.0.0.0.0.0.0.0. |    |
+| bits:                            |  1 |
+| bits:                            |  a |
+| bits:                            |  f |

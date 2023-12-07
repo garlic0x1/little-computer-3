@@ -1,6 +1,7 @@
 #include "op.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include "../util/bits.h"
 
 /*
 ** NOTE
@@ -17,7 +18,7 @@
 ** result stored in DR. The condition codes are set, based on whether the result is
 ** negative, zero, or positive.
 */
-void op_add(struct vm_state *state, uint16_t instr)
+void op_add_(struct vm_state *state, uint16_t instr)
 {
 	// destination register
 	uint16_t r0 = (instr >> 9) & 0x7;
@@ -32,6 +33,20 @@ void op_add(struct vm_state *state, uint16_t instr)
 		state->reg[r0] = state->reg[r1] + state->reg[instr & 0x7];
 
 	update_flags(state, r0);
+}
+
+void op_add(struct vm_state *state, uint16_t instr)
+{
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t sr1 = extract_bits(instr, 6, 8);
+	uint16_t imm_flag = extract_bits(instr, 5, 5);
+
+	if (imm_flag)
+		state->reg[dr] = state->reg[sr1] + extract_bits(instr, 0, 4);
+	else
+		state->reg[dr] = state->reg[sr1] + state->reg[extract_bits(instr, 0, 2)];
+
+	update_flags(state, dr);
 }
 
 /*
