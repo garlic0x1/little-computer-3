@@ -18,35 +18,21 @@
 ** result stored in DR. The condition codes are set, based on whether the result is
 ** negative, zero, or positive.
 */
-void op_add_(struct vm_state *state, uint16_t instr)
-{
-	// destination register
-	uint16_t r0 = (instr >> 9) & 0x7;
-	// first operand
-	uint16_t r1 = (instr >> 6) & 0x7;
-	// immediate mode?
-	uint16_t imm_flag = (instr >> 5) & 0x1;
-
-	if (imm_flag)
-		state->reg[r0] = state->reg[r1] + sign_extend(instr & 0x1f, 5);
-	else
-		state->reg[r0] = state->reg[r1] + state->reg[instr & 0x7];
-
-	update_flags(state, r0);
-}
-
-void op_add(struct vm_state *state, uint16_t instr)
+void op_add(struct vm_state *vm, uint16_t instr)
 {
 	uint16_t dr = extract_bits(instr, 9, 11);
 	uint16_t sr1 = extract_bits(instr, 6, 8);
 	uint16_t imm_flag = extract_bits(instr, 5, 5);
 
-	if (imm_flag)
-		state->reg[dr] = state->reg[sr1] + extract_bits(instr, 0, 4);
-	else
-		state->reg[dr] = state->reg[sr1] + state->reg[extract_bits(instr, 0, 2)];
+	if (imm_flag) {
+		uint16_t imm5 = extend_bits(instr, 0, 4);
+		vm->reg[dr] = vm->reg[sr1] + imm5;
+	} else {
+		uint16_t sr2 = extract_bits(instr, 0, 2);
+		vm->reg[dr] = vm->reg[sr1] + vm->reg[sr2];
+	}
 
-	update_flags(state, dr);
+	update_flags(vm, dr);
 }
 
 /*
@@ -59,21 +45,21 @@ void op_add(struct vm_state *state, uint16_t instr)
 ** whether the binary value produced, taken as a 2’s complement integer, is negative,
 ** zero, or positive.
 */
-void op_and(struct vm_state *state, uint16_t instr)
+void op_and(struct vm_state *vm, uint16_t instr)
 {
-	// destination register
-	uint16_t r0 = (instr >> 9) & 0x7;
-	// first operand
-	uint16_t r1 = (instr >> 6) & 0x7;
-	// immediate mode?
-	uint16_t imm_flag = (instr >> 5) & 0x1;
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t sr1 = extract_bits(instr, 6, 8);
+	uint16_t imm_flag = extract_bits(instr, 5, 5);
 
-	if (imm_flag)
-		state->reg[r0] = state->reg[r1] & sign_extend(instr & 0x1f, 5);
-	else
-		state->reg[r0] = state->reg[r1] & state->reg[instr & 0x7];
+	if (imm_flag) {
+		uint16_t imm5 = extend_bits(instr, 0, 4);
+		vm->reg[dr] = vm->reg[sr1] & imm5;
+	} else {
+		uint16_t sr2 = extract_bits(instr, 0, 2);
+		vm->reg[dr] = vm->reg[sr1] & vm->reg[sr2];
+	}
 
-	update_flags(state, r0);
+	update_flags(vm, dr);
 }
 
 /*
@@ -84,13 +70,13 @@ void op_and(struct vm_state *state, uint16_t instr)
 ** the location specified by adding the sign-extended PCoffset9 field to the
 ** incremented PC.
  */
-void op_br(struct vm_state *state, uint16_t instr)
+void op_br(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	uint16_t cond_flag = (instr >> 9) & 0x7;
+	uint16_t cond_flag = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
 
-	if (cond_flag & state->reg[R_COND])
-		state->reg[R_PC] += pc_offset;
+	if (cond_flag & vm->reg[R_COND])
+		vm->reg[R_PC] += pc_offset;
 }
 
 /*
@@ -98,10 +84,10 @@ void op_br(struct vm_state *state, uint16_t instr)
 ** The program unconditionally jumps to the location specified by the contents of
 ** the base register. Bits [8:6] identify the base register.
 */
-void op_jmp(struct vm_state *state, uint16_t instr)
+void op_jmp(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r1 = (instr >> 6) & 0x7;
-	state->reg[R_PC] = state->reg[r1];
+	uint16_t base_r = extract_bits(instr, 6, 8);
+	vm->reg[R_PC] = vm->reg[base_r];
 }
 
 /*
@@ -113,15 +99,18 @@ void op_jmp(struct vm_state *state, uint16_t instr)
 ** computed by sign-extending bits [10:0] and adding this value to the incremented
 ** PC (if bit [11] is 1)
 */
-void op_jsr(struct vm_state *state, uint16_t instr)
+void op_jsr(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t long_flag = (instr >> 11) & 0x1;
-	state->reg[R_R7] = state->reg[R_PC];
+	uint16_t long_flag = extract_bits(instr, 11, 11);
+	vm->reg[R_R7] = vm->reg[R_PC];
 
-	if (long_flag)
-		state->reg[R_PC] += sign_extend(instr & 0x7ff, 11);
-	else
-		state->reg[R_PC] = (instr >> 6) & 0x7;
+	if (long_flag) {
+		uint16_t pc_offset = extend_bits(instr, 0, 10);
+		vm->reg[R_PC] += pc_offset;
+	} else {
+		uint16_t base_r = extract_bits(instr, 6, 8);
+		vm->reg[R_PC] = base_r;
+	}
 }
 
 /*
@@ -131,12 +120,12 @@ void op_jsr(struct vm_state *state, uint16_t instr)
 ** into DR. The condition codes are set, based on whether the value loaded is
 ** negative, zero, or positive.
 */
-void op_ld(struct vm_state *state, uint16_t instr)
+void op_ld(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	state->reg[r0] = mem_read(state, state->reg[R_PC] + pc_offset);
-	update_flags(state, r0);
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
+	vm->reg[dr] = mem_read(vm, vm->reg[R_PC] + pc_offset);
+	update_flags(vm, dr);
 }
 
 /*
@@ -147,16 +136,12 @@ void op_ld(struct vm_state *state, uint16_t instr)
 ** address of the data to be loaded into DR. The condition codes are set, based on
 ** whether the value loaded is negative, zero, or positive.
 */
-void op_ldi(struct vm_state *state, uint16_t instr)
+void op_ldi(struct vm_state *vm, uint16_t instr)
 {
-	// destination register
-	uint16_t r0 = (instr >> 9) & 0x7;
-	/* PCoffset 9*/
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	/* add offset to pc, and read memory */
-	state->reg[r0] =
-		mem_read(state, mem_read(state, state->reg[R_PC] + pc_offset));
-	update_flags(state, r0);
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
+	vm->reg[dr] = mem_read(vm, mem_read(vm, vm->reg[R_PC] + pc_offset));
+	update_flags(vm, dr);
 }
 
 /*
@@ -166,13 +151,13 @@ void op_ldi(struct vm_state *state, uint16_t instr)
 ** memory at this address are loaded into DR. The condition codes are set, based
 ** on whether the value loaded is negative, zero, or positive.
 */
-void op_ldr(struct vm_state *state, uint16_t instr)
+void op_ldr(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t r1 = (instr >> 6) & 0x7;
-	uint16_t offset = sign_extend(instr & 0x3F, 6);
-	state->reg[r0] = mem_read(state, state->reg[r1] + offset);
-	update_flags(state, r0);
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t base_r = extract_bits(instr, 6, 8);
+	uint16_t offset = extend_bits(instr, 0, 5);
+	vm->reg[dr] = mem_read(vm, vm->reg[base_r] + offset);
+	update_flags(vm, dr);
 }
 
 /*
@@ -181,12 +166,12 @@ void op_ldr(struct vm_state *state, uint16_t instr)
 ** value to the incremented PC. This address is loaded into DR.‡ The condition
 ** codes are set, based on whether the value loaded is negative, zero, or positive
 */
-void op_lea(struct vm_state *state, uint16_t instr)
+void op_lea(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	state->reg[r0] = state->reg[R_PC] + pc_offset;
-	update_flags(state, r0);
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
+	vm->reg[dr] = vm->reg[R_PC] + pc_offset;
+	update_flags(vm, dr);
 }
 
 /*
@@ -195,13 +180,13 @@ void op_lea(struct vm_state *state, uint16_t instr)
 ** The condition codes are set, based on whether the binary value produced,
 ** taken as a 2’s complement integer, is negative, zero, or positive.
 */
-void op_not(struct vm_state *state, uint16_t instr)
+void op_not(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t r1 = (instr >> 6) & 0x7;
+	uint16_t dr = extract_bits(instr, 9, 11);
+	uint16_t sr = extract_bits(instr, 6, 8);
 
-	state->reg[r0] = ~state->reg[r1];
-	update_flags(state, r0);
+	vm->reg[dr] = ~vm->reg[sr];
+	update_flags(vm, dr);
 }
 
 /*
@@ -209,7 +194,7 @@ void op_not(struct vm_state *state, uint16_t instr)
 ** The PC is loaded with the value in R7.
 ** This causes a return from a previous JSR instruction.
 */
-void op_ret(struct vm_state *state, uint16_t instr)
+void op_ret(struct vm_state *vm, uint16_t instr)
 {
 }
 
@@ -220,7 +205,7 @@ void op_ret(struct vm_state *state, uint16_t instr)
 ** Supervisor Stack are popped and loaded into PC, PSR. If the processor is running
 ** in User mode, a privilege mode violation exception occurs.
 */
-void op_rti(struct vm_state *state, uint16_t instr)
+void op_rti(struct vm_state *vm, uint16_t instr)
 {
 	abort();
 }
@@ -231,11 +216,11 @@ void op_rti(struct vm_state *state, uint16_t instr)
 ** whose address is computed by sign-extending bits [8:0] to 16 bits and adding this
 ** value to the incremented PC.
 */
-void op_st(struct vm_state *state, uint16_t instr)
+void op_st(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	mem_write(state, state->reg[R_PC] + pc_offset, state->reg[r0]);
+	uint16_t sr = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
+	mem_write(vm, vm->reg[R_PC] + pc_offset, vm->reg[sr]);
 }
 
 /*
@@ -245,12 +230,11 @@ void op_st(struct vm_state *state, uint16_t instr)
 ** added to the incremented PC. What is in memory at this address is the address of
 ** the location to which the data in SR is stored.
  */
-void op_sti(struct vm_state *state, uint16_t instr)
+void op_sti(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t pc_offset = sign_extend(instr & 0x1FF, 9);
-	mem_write(state, mem_read(state, state->reg[R_PC] + pc_offset),
-		  state->reg[r0]);
+	uint16_t sr = extract_bits(instr, 9, 11);
+	uint16_t pc_offset = extend_bits(instr, 0, 8);
+	mem_write(vm, mem_read(vm, vm->reg[R_PC] + pc_offset), vm->reg[sr]);
 }
 
 /*
@@ -259,18 +243,18 @@ void op_sti(struct vm_state *state, uint16_t instr)
 ** whose address is computed by sign-extending bits [5:0] to 16 bits and adding this
 ** value to the contents of the register specified by bits [8:6].
 */
-void op_str(struct vm_state *state, uint16_t instr)
+void op_str(struct vm_state *vm, uint16_t instr)
 {
-	uint16_t r0 = (instr >> 9) & 0x7;
-	uint16_t r1 = (instr >> 6) & 0x7;
-	uint16_t offset = sign_extend(instr & 0x3F, 6);
-	mem_write(state, state->reg[r1] + offset, state->reg[r0]);
+	uint16_t sr = extract_bits(instr, 9, 11);
+	uint16_t base_r = extract_bits(instr, 6, 8);
+	uint16_t offset = extend_bits(instr, 0, 5);
+	mem_write(vm, vm->reg[base_r] + offset, vm->reg[sr]);
 }
 
 /*
 ** TODO
 */
-void op_res(struct vm_state *state, uint16_t instr)
+void op_res(struct vm_state *vm, uint16_t instr)
 {
 	abort();
 }
@@ -284,57 +268,57 @@ void op_res(struct vm_state *state, uint16_t instr)
 ** The starting address is contained in the memory location whose address is
 ** obtained by zero-extending trapvector8 to 16 bits.
 */
-void op_trap(struct vm_state *state, uint16_t instr)
+void op_trap(struct vm_state *vm, uint16_t instr)
 {
-	state->reg[R_R7] = state->reg[R_PC];
-	trap(state, instr & 0xff);
+	vm->reg[R_R7] = vm->reg[R_PC];
+	trap(vm, instr & 0xff);
 }
 
 // lookup operation to apply to instruction
-void apply_op(struct vm_state *state, uint16_t op, uint16_t instr)
+void apply_op(struct vm_state *vm, uint16_t op, uint16_t instr)
 {
 	switch (op) {
 	case OP_ADD:
-		op_add(state, instr);
+		op_add(vm, instr);
 		break;
 	case OP_AND:
-		op_and(state, instr);
+		op_and(vm, instr);
 		break;
 	case OP_NOT:
-		op_not(state, instr);
+		op_not(vm, instr);
 		break;
 	case OP_BR:
-		op_br(state, instr);
+		op_br(vm, instr);
 		break;
 	case OP_JMP:
-		op_jmp(state, instr);
+		op_jmp(vm, instr);
 		break;
 	case OP_JSR:
-		op_jsr(state, instr);
+		op_jsr(vm, instr);
 		break;
 	case OP_LD:
-		op_ld(state, instr);
+		op_ld(vm, instr);
 		break;
 	case OP_LDI:
-		op_ldi(state, instr);
+		op_ldi(vm, instr);
 		break;
 	case OP_LDR:
-		op_ldr(state, instr);
+		op_ldr(vm, instr);
 		break;
 	case OP_LEA:
-		op_lea(state, instr);
+		op_lea(vm, instr);
 		break;
 	case OP_ST:
-		op_st(state, instr);
+		op_st(vm, instr);
 		break;
 	case OP_STI:
-		op_sti(state, instr);
+		op_sti(vm, instr);
 		break;
 	case OP_STR:
-		op_str(state, instr);
+		op_str(vm, instr);
 		break;
 	case OP_TRAP:
-		op_trap(state, instr);
+		op_trap(vm, instr);
 		break;
 	case OP_RES:
 	case OP_RTI:
