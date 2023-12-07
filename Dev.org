@@ -76,3 +76,31 @@ printf("bits: %x\n", extract_bits(12, 15, instr));
 | bits:                            |  1 |
 | bits:                            |  a |
 | bits:                            |  f |
+
+* Strtok
+#+begin_src C
+#include <stdio.h>
+#include <string.h>
+
+void tokenize(char *tokens[], char *line)
+{
+	int i = 0;
+	char *tok;
+    char delim[3] = " \t";
+
+	tok = strtok(line, delim);
+	while (NULL != tok) {
+		strcpy(tokens[i++], tok);
+        tok = strtok(NULL, delim);
+	}
+}
+char line[24] = "lea bruh 1";
+char *toks[8];
+tokenize(toks, line);
+
+/* for (int i = 0; i < 8; i++) { */
+/*     printf("%s\n", toks[i]); */
+/* } */
+#+end_src
+
+#+RESULTS:
